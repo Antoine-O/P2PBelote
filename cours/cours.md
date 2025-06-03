@@ -1,8 +1,6 @@
-**Les Fondamentaux de l'Algorithmique et de Python 🐍**
+# Les Fondamentaux de l'Algorithmique et de Python 🐍
 
 Imaginez que vous voulez construire quelque chose de complexe, comme une superbe cabane dans les arbres ou organiser un grand voyage. Avant de commencer à clouer des planches ou à réserver des billets, vous avez besoin d'un plan, d'instructions claires. C'est là qu'interviennent l'algorithmique et la programmation.
-
-
 -----
 
 # **Sommaire**
