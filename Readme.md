@@ -1,7 +1,212 @@
 
 Basé sur https://fr.wikipedia.org/wiki/Belote
 
-# Résumé
+# Belote P2P pour IA (avec Tests)
+
+L'objectif final est de créer un système où quatre processus IA indépendants peuvent jouer une partie de belote complète en P2P, avec un code structuré pour que le développeur puisse facilement créer, tester et améliorer de nouvelles IA. Une culture de test est intégrée dès le début.
+
+
+## Module 1 : Le Moteur de Jeu Local et l'IA de Base (Programmation Procédurale)
+
+**Objectif :** Valider toute la logique du jeu de belote dans un unique script Python qui simule une partie complète entre 4 IA basiques, en utilisant des tests unitaires pour chaque composant.
+
+
+### Étape 1.1 : Représentation des Données
+
+- **Implémentation :** Définir une carte comme un dictionnaire : {'valeur': 'AS', 'couleur': 'COEUR'}. Créer des listes pour les mains et le paquet.
+
+- **Fonctions Utilitaires :** creer\_paquet(), melanger\_paquet(paquet).
+
+
+### Étape 1.2 : Les Briques Logiques Élémentaires
+
+- **Implémentation :** Créer les fonctions get\_points\_carte(carte, atout) et determiner\_vainqueur\_pli(pli\_cartes, atout, couleur\_demandee).
+
+- 🧪 **Tests à Implémenter (pytest) :**
+
+* **Pour get\_points\_carte :**
+
+- test\_points\_valet\_atout() : Vérifie que le Valet d'atout retourne bien 20 points.
+
+- test\_points\_neuf\_atout() : Vérifie que le 9 d'atout retourne bien 14 points.
+
+- test\_points\_as\_normal() : Vérifie qu'un As non-atout retourne bien 11 points.
+
+- test\_points\_valet\_normal() : Vérifie que le Valet non-atout retourne bien 2 points.
+
+* **Pour determiner\_vainqueur\_pli :**
+
+- test\_vainqueur\_avec\_un\_seul\_atout() : Un pli avec 3 cartes normales et 1 atout ; le joueur de l'atout gagne.
+
+- test\_vainqueur\_avec\_plusieurs\_atouts\_meme\_couleur() : Un pli avec un 9 d'atout et un Valet d'atout ; le joueur du Valet gagne.
+
+- test\_vainqueur\_sans\_atout\_couleur\_demandee() : Un pli sans atout ; le joueur avec l'As de la couleur demandée gagne contre le 10.
+
+- test\_vainqueur\_avec\_defausse\_non\_atout() : Un joueur ne fournit pas la couleur demandée et se défausse d'une autre couleur (non atout) ; il ne peut pas gagner.
+
+
+### Étape 1.3 : L'IA Minimale (Le Cerveau à Tester)
+
+- **Implémentation :** Créer la fonction choisir\_carte\_legale(main\_joueur, pli\_en\_cours, atout, partenaire\_maitre). Cette fonction doit retourner une carte légale à jouer. Si plusieurs sont possibles, elle peut choisir la première ou une au hasard pour l'instant.
+
+- 🧪 **Tests à Implémenter (pytest) :**
+
+* test\_ia\_doit\_fournir\_la\_couleur\_si\_possible() : Donner une main où le joueur peut fournir ; vérifier que la carte jouée est de la couleur demandée.
+
+* test\_ia\_doit\_couper\_si\_possible() : Le joueur n'a pas la couleur demandée mais a de l'atout ; vérifier qu'il joue un atout.
+
+* test\_ia\_doit\_surcouper\_atout\_si\_possible() : Un adversaire a coupé avec un atout. Donner à l'IA un atout supérieur ; vérifier qu'elle surcoupe.
+
+* test\_ia\_peut\_pisser\_atout\_si\_pas\_mieux() : Atout demandé, l'IA n'a que des atouts inférieurs ; vérifier qu'elle joue un atout.
+
+* test\_ia\_peut\_se\_defausser\_si\_partenaire\_maitre() : Le partenaire de l'IA est maître. L'IA n'a pas la couleur demandée et n'est pas obligée de couper ; vérifier qu'elle peut jouer une autre carte.
+
+* test\_ia\_se\_defausse\_si\_ni\_couleur\_ni\_atout() : L'IA ne peut ni fournir ni couper ; vérifier qu'elle joue une carte d'une autre couleur.
+
+
+### Étape 1.4 : La Logique d'Enchères et de Score de Manche
+
+- **Implémentation :** Créer les fonctions decider\_enchere(main\_joueur, carte\_retournee) (pour l'instant, décision simple : prendre si > X points d'atout potentiels) et calculer\_scores\_manche(equipe\_prenante\_points\_bruts, equipe\_defense\_points\_bruts, annonces\_prenantes, annonces\_defense, equipe\_prenante\_belote, contrat\_reussi).
+
+- 🧪 **Tests à Implémenter (pytest) :**
+
+* test\_score\_contrat\_reussi\_simple() : L'équipe prenante fait 100 points bruts (sans annonces) ; vérifier que le score attribué est 100 pour les prenants, 62 pour la défense.
+
+* test\_score\_contrat\_chute\_simple() : L'équipe prenante fait 70 points bruts (sans annonces) ; vérifier qu'elle marque 0 et la défense 162.
+
+* test\_score\_contrat\_reussi\_avec\_annonces() : Prenants font 90, annoncent 20 (Belote). Défense fait 72. Prenants marquent 90+20=110. Défense marque 72.
+
+* test\_score\_contrat\_chute\_avec\_annonces() : Prenants font 60, annoncent 20 (Belote). Défense annonce 50. Prenants marquent 20 (Belote). Défense marque 162 + 50 = 212.
+
+* test\_decider\_enchere\_prend\_avec\_bonne\_main() : Donner une main forte à l'IA pour les enchères ; vérifier qu'elle décide de "prendre".
+
+* test\_decider\_enchere\_passe\_avec\_mauvaise\_main() : Donner une main faible ; vérifier qu'elle "passe".
+
+**Victoire de ce Module :** Vous avez un fichier simulation\_locale.py qui simule une partie complète entre 4 IA basiques et affiche le score final. Tous vos tests unitaires pour la logique de base passent.
+
+
+## Module 2 : Structuration du Code pour des IA Améliorables (Programmation Orientée Objet)
+
+**Objectif :** Rendre le code modulaire et propre en utilisant la POO, afin de pouvoir facilement "brancher" différentes versions de l'IA. Le jeu doit faire exactement la même chose, mais le code est mieux organisé.
+
+
+### Étape 2.1 & 2.2 : Les Classes de Données et la Classe JoueurIA
+
+- **Implémentation :** Créer les classes Carte, Paquet, Equipe. Créer une classe de base JoueurIA (potentiellement abstraite) et des implémentations concrètes : JoueurIAAleatoire(JoueurIA) (joue un coup légal au hasard) et JoueurIASimple(JoueurIA) (reprend la logique de choisir\_carte\_legale et decider\_enchere du Module 1).
+
+- 🧪 **Tests à Adapter et à Implémenter :**
+
+* Réécrire tous les tests du Module 1 pour utiliser les objets. Par exemple, get\_points\_carte(carte\_dict, atout) devient carte\_objet.get\_points(atout). Le test test\_points\_valet\_atout doit maintenant instancier un objet Carte.
+
+* Exemple : Les tests de légalité appellent maintenant la méthode joueur\_ia.choisir\_carte(...).
+
+* test\_joueur\_ia\_aleatoire\_joue\_coup\_legal() : Vérifier que JoueurIAAleatoire retourne bien une carte parmi les coups légaux possibles.
+
+* test\_joueur\_ia\_simple\_respecte\_regles() : Refaire les tests de légalité du Module 1, mais en appelant la méthode de JoueurIASimple.
+
+
+### Étape 2.3 : La Classe Moteur de Jeu Partie
+
+- **Implémentation :** Créer la classe Partie qui orchestre le jeu. Elle prend en entrée une liste de 4 objets JoueurIA.
+
+- 🧪 **Tests d'Intégration à Implémenter :**
+
+* test\_partie\_avec\_differentes\_ia\_se\_deroule() : Instancier Partie avec un mix de JoueurIAAleatoire et JoueurIASimple. Lancer partie.jouer\_partie\_complete(). Vérifier que cela se termine sans erreur.
+
+* test\_distribution\_oop\_est\_valide() : Après l'appel à une méthode de distribution dans Partie, vérifier que chaque objet JoueurIA a bien 8 objets Carte et que le Paquet est vide.
+
+* test\_rotation\_du\_dealer\_oop() : Après une manche, vérifier que l'attribut dealer de l'objet Partie a correctement changé.
+
+**Victoire de ce Module :** Votre projet est bien structuré en POO. Vous pouvez facilement créer de nouvelles IA et les intégrer dans une simulation de Partie. Tous les tests passent.
+
+
+## Module 3 : Mise en Réseau des IA (Peer-to-Peer)
+
+**Objectif :** Faire en sorte que chaque IA tourne dans son propre processus indépendant et communique avec les autres via le réseau.
+
+
+### Étape 3.1 : Apprendre les Bases d'un Framework Web (FastAPI)
+
+- **Apprentissage :** Isoler cette étape. Créer un mini-projet "Hello World" avec FastAPI.
+
+- 🧪 **Tests :** Pas de tests spécifiques à la belote ici, mais tester le mini-projet FastAPI (ex: appeler l'endpoint / et vérifier la réponse).
+
+
+### Étape 3.2 : Le Service Web de l'IA (Isolation du "Cerveau")
+
+- **Implémentation :** Créer un service FastAPI pour une IA. Un endpoint POST /choisir\_carte reçoit l'état du jeu en JSON, instancie un JoueurIASimple, appelle sa méthode choisir\_carte(), et retourne la carte en JSON. Idem pour POST /decider\_enchere.
+
+- 🧪 **Tests d'API à Implémenter (pytest et httpx pour FastAPI) :**
+
+* test\_api\_choisir\_carte\_reponse\_200\_ok() : Envoyer un JSON valide à l'API de l'IA. Vérifier le statut 200 et que la réponse est une carte valide.
+
+* test\_api\_choisir\_carte\_donnees\_invalides\_422() : Envoyer un JSON malformé. Vérifier que le service répond avec une erreur 422 (Unprocessable Entity).
+
+
+### Étape 3.3 : L'Orchestrateur Réseau (Étape intermédiaire)
+
+- **Implémentation :** Modifier la classe Partie (ou un nouveau script "Orchestrateur") pour qu'elle appelle les services web des IA via des requêtes HTTP (avec la librairie httpx ou requests) au lieu d'appels de méthodes directs.
+
+- 🧪 **Tests d'Intégration (avec Mocks) :**
+
+* Utiliser pytest-mock pour "mocker" (simuler) les réponses des services web IA.
+
+* test\_orchestrateur\_appelle\_services\_ia\_dans\_lordre() : Vérifier que l'orchestrateur contacte les bons endpoints des IA, dans le bon ordre, en fonction du tour de jeu.
+
+* test\_orchestrateur\_gere\_reponse\_ia() : Simuler une réponse d'un service IA (une carte jouée) et vérifier que l'orchestrateur la traite correctement.
+
+
+### Étape 3.4 : La Vraie Migration P2P
+
+- **Implémentation :** Chaque service IA intègre maintenant la logique de la Partie (ou une partie de celle-ci, pour la gestion de son propre état). Implémenter les endpoints /invite, /rejoindre, et /action pour la communication P2P.
+
+* Une fois que l'Initiateur a reçu la confirmation des 3 autres joueurs via /rejoindre, il construit la liste\_complete\_joueurs. Il diffuse alors cette liste à tous les autres joueurs via un endpoint comme POST /synchroniser\_joueurs\_et\_demarrer. La réception de cette liste complète signifie implicitement le démarrage de la partie pour tous.
+
+* Une IA dont c'est le tour appelle l'endpoint /action des 3 autres.
+
+- 🧪 **Tests d'Intégration et End-to-End (E2E) à Implémenter :**
+
+* test\_scenario\_inscription\_complet\_p2p() : Un script de test démarre 4 instances du service IA. Le script initie l'invitation et vérifie que les 4 services se synchronisent correctement : l'Initiateur reçoit les /rejoindre, puis diffuse la liste finale via /synchroniser\_joueurs\_et\_demarrer. Tous les joueurs doivent avoir la même liste et être prêts.
+
+* test\_diffusion\_et\_validation\_action\_p2p() : Faire jouer un coup par une IA. Vérifier (en interrogeant un endpoint /etat\_du\_jeu à créer sur chaque service, ou via des logs) que les 3 autres IA ont bien reçu, validé et appliqué l'action.
+
+* test\_partie\_p2p\_scores\_finaux\_identiques() : Le test ultime. Lancer les 4 services, les laisser jouer une partie complète. À la fin, interroger chaque service pour récupérer son calcul du score final. Vérifier que les 4 services ont le même score.
+
+* test\_resilience\_deconnexion\_p2p() : Lancer 4 services, en tuer un en cours de partie. Vérifier que les autres détectent la déconnexion et gèrent l'erreur (ex: fin de partie, attribution des points).
+
+**Victoire Finale :** Vos 4 services IA indépendants jouent une partie de belote complète en P2P, et vos tests E2E le confirment.
+
+
+### Module 4 : Pour Aller Plus Loin et Amélioration Continue
+
+**Objectif :** Utiliser la structure modulaire et P2P pour développer, tester et comparer des IA de plus en plus intelligentes.
+
+- **Priorité n°1 : L'Amélioration Stratégique de l'IA**
+
+* **Développement :** Créer de nouvelles classes d'IA (JoueurIAIntermediaire, JoueurIAAvance) avec des logiques plus fines : mémorisation des cartes, analyse des partenaires, stratégie d'enchères avancée, etc.
+
+* 🧪 **Tests :** Pour chaque nouvelle IA, écrire des tests spécifiques qui valident sa stratégie particulière dans des scénarios donnés. Par exemple, test\_ia\_avancee\_ne\_met\_pas\_son\_as\_sous\_le\_dix\_partenaire().
+
+- **Priorité n°2 : Le "Gymnase" d'IA (Benchmarking)**
+
+* **Développement :** Créer un framework de test qui lance N parties entre différentes configurations d'équipes IA (ex: Équipe de 2 JoueurIASimple vs. Équipe de 2 JoueurIAAvance).
+
+* 🧪 **Tests/Analyses :** Mesurer les taux de victoire, les scores moyens, pour évaluer objectivement la performance des différentes IA.
+
+- **Priorité n°3 : Robustesse et Sécurité**
+
+* **Développement :** Implémenter la signature cryptographique des actions pour les communications P2P.
+
+* 🧪 **Tests :** test\_action\_signee\_valide(), test\_action\_avec\_signature\_invalide\_rejetee().
+
+- **Autres pistes :**
+
+* **Persistance des Scores/Parties :** Sauvegarder les résultats dans une base de données simple.
+
+* **Déploiement avec Docker :** Faciliter le lancement des services IA.
+
+
+# Graphes
 
 différents graphes et codes à comprendre / adapter pour coder le tout. 
 
@@ -958,3 +1163,4 @@ sequenceDiagram
     end
 
 ```
+
