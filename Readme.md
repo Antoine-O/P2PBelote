@@ -3,7 +3,7 @@ Basé sur https://fr.wikipedia.org/wiki/Belote
 
 # Résumé
 
-différents graphes et code à comprendre / adapter pour coder le tout. 
+différents graphes et codes à comprendre / adapter pour coder le tout. 
 
 
 
