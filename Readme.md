@@ -1,207 +1,11 @@
-```mermaid
----
-title: Diagramme de sequence global
----
-sequenceDiagram
-    participant Alice as Alice/Hôte
-    participant Bob
-    participant Charlie as Charlie/Preneur
-    participant Diana
-    rect rgb(168,168,168)
-        loop personne n'a un score >500
-        %% ======================= PHASE 0 : Proposition de partie (Alice) et inscription =======================
-            rect rgb(192,168,192)
-                Note over Alice: DEBUT DE PARTIE<br>Gère les inscription à la partie
-                par
-                    Alice ->> Bob: POST /invite
-                    Note over Alice: Invite à la partie
-                and
-                    Alice ->> Charlie: POST /invite
-                    Note over Alice: Invite à la partie
-                and
-                    Alice ->> Diana: POST /invite
-                    Note over Alice: Invite à la partie
-                end
-                par
-                    Bob ->> Alice: POST /join
-                    Note over Alice: Envoie la position dans le jeu
-                and
-                    Charlie ->> Alice: POST /join
-                    Note over Alice: Envoie la position dans le jeu
-                and
-                    Diana ->> Alice: POST /join
-                    Note over Alice: Envoie la position dans le jeu
-                end
-                loop la partie n'est pas pleine
-                    Alice ->> Alice: attend d'autre joueur
-                end
-                alt la partie est pleine
-                    par
-                        Alice ->> Bob: POST /join
-                        Note over Alice: Envoie les joueurs et leur ip
-                    and
-                        Alice ->> Charlie: POST /join
-                        Note over Alice: Envoie les joueurs et leur ip
-                    and
-                        Alice ->> Diana: POST /join
-                        Note over Alice: Envoie les joueurs et leur ip
-                    end
-                end
-            end
 
-        %% ======================= PHASE 1 : DISTRIBUTION ET ENCHÈRES (Rôle Hôte) =======================
-            rect rgb(168,192,192)
-                Note over Alice: DEBUT DE MANCHE <br>Alice est Hôte.
-                Alice ->> Alice: Mélange le paquet (uniquement pour la 1ère partie du jeu).
-                Alice ->> Bob: POST /recevoir_main
-                Alice ->> Charlie: POST /recevoir_main
-                Alice ->> Diana: POST /recevoir_main
-                Alice ->> Bob: POST /demander_enchere
-                Bob -->> Alice: Réponse: { enchere: "PASSE" }
-                Alice ->> Charlie: POST /demander_enchere
-                Charlie -->> Alice: Réponse: { enchere: "PRENDS", couleur: "COEUR" }
-            %%    Note over Alice: Enchères terminées. Charlie (Preneur) a pris à Coeur.
-                Alice ->> Alice: Crée et signe l'action "RESULTAT_ENCHERES"
-                Alice ->> Bob: POST /action (ActionSignee: Résultat)
-                Alice ->> Charlie: POST /action (ActionSignee: Résultat)
-                Alice ->> Diana: POST /action (ActionSignee: Résultat)
-            %%    Note over Alice, Bob, Charlie, Diana: Synchronisation terminée. Atout = Coeur. Au tour de Bob de jouer.
-            end
-        %% ======================= PHASE 2 : JEU DES CARTES - UN PLI =======================
-        %%  DÉBUT PHASE DE JEU - Le rôle d'Hôte est terminé pour Alice.
-            rect rgb(192,192,168)
-                loop Chaque pli tant qu'il reste une carte à jouer
-                    note right of Bob: DEBUT DE PLI :<br> Bob lance le pli <br>(ou le dernier vainqueur du pli, ou le joueur après l hôte).
-                    Bob ->> Bob: Choisit une carte, crée et signe une action "JOUER_CARTE"
-                    par
-                        Bob ->> Alice: POST /action (ActionSignee: Carte de Bob)
-                        Note over Alice: Valide l action de Bob.
-                    and
-                        Bob ->> Charlie: POST /action (ActionSignee: Carte de Bob)
-                        Note over Alice: Valide l action de Bob.
-                    and
-                        Bob ->> Diana: POST /action (ActionSignee: Carte de Bob)
-                        Note over Alice: Valide l action de Bob.
-                    end
+Basé sur https://fr.wikipedia.org/wiki/Belote
 
-                    Charlie ->> Charlie: Choisit une carte <br> crée et signe une action "JOUER_CARTE"
-                    par
-                        Charlie ->> Alice: POST /action (ActionSignee: Carte de Charlie)
-                        Note over Alice: Valide l action de Charlie.
-                    and
-                        Charlie ->> Bob: POST /action (ActionSignee: Carte de Charlie)
-                        Note over Bob: Valide l action de Charlie.
-                    and
-                        Charlie ->> Diana: POST /action (ActionSignee: Carte de Charlie)
-                        Note over Diana: Valide l action de Charlie.
-                    end
+# Résumé
 
-                    Diana ->> Diana: Choisit une carte, crée et signe une action "JOUER_CARTE"
-                    par
-                        Diana ->> Alice: POST /action (ActionSignee: Carte de Diana)
-                        Note over Alice: Valide l action de Diana.
-                    and
-                        Diana ->> Bob: POST /action (ActionSignee: Carte de Diana)
-                        Note over Bob: Valide l action de Diana.
-                    and
-                        Diana ->> Charlie: POST /action (ActionSignee: Carte de Diana)
-                        Note over Charlie: Valide l action de Diana.
-                    end
+différents graphes et code à comprendre / adapter pour coder le tout. 
 
-                    Alice ->> Alice: Choisit une carte, crée et signe une action "JOUER_CARTE"
-                    par
-                        Alice ->> Bob: POST /action (ActionSignee: Carte d'Alice)
-                        Note over Bob: Valide l action d Alice.
-                    and
-                        Alice ->> Charlie: POST /action (ActionSignee: Carte d'Alice)
-                        Note over Charlie: Valide l action d Alice.
-                    and
-                        Alice ->> Diana: POST /action (ActionSignee: Carte d'Alice)
-                        Note over Diana: Valide l action d Alice.
-                    end
 
-                    alt le pli est complet
-                        Note over Alice: FIN DE PLI <br>détermine le gagnant (Diana) crée et signe une action "REMPORTE_PLI"
-                        par
-                            Alice ->> Bob: POST /action (ActionSignee: Nom Vainqueur / Cartes Jouées)
-                            Note over Bob: Valide la résolution d Alice.
-                        and
-                            Alice ->> Charlie: POST /action (ActionSignee: Nom Vainqueur / Cartes Jouées)
-                            Note over Charlie: Valide la résolution d Alice.
-                        and
-                            Alice ->> Diana: POST /action (ActionSignee: Nom Vainqueur / Cartes Jouées)
-                            Note over Diana: Valide la résolution d Alice <br> Enregistre les cartes gagnées.
-                        end
-                    end
-
-                end
-            end
-
-        %% ======================= PHASE 3 : FIN DE MANCHE =======================
-        %% Les 8 plis sont joués.
-            rect rgb(192,192,192)
-                Note over Alice: FIN DE MANCHE <br>Alice est Hôte.
-                alt toutes les plis sont jouées
-                    Alice ->> Alice: Calcul les points Crée et signe l'action "POINTS".
-                    par
-                        Alice ->> Bob: POST /action (ActionSignee: { type: "POINTS", points: X })
-                        Note over Bob: Valide le comptage d Alice
-                    and
-                        Alice ->> Charlie: POST /action (ActionSignee: { type: "POINTS", points: Y })
-                        Note over Charlie: Valide le comptage d Alice.
-                    and
-                        Alice ->> Diana: POST /action (ActionSignee: { type: "POINTS", points: X })
-                        Note over Diana: Valide le comptage d Alice.
-                    end
-                    Alice ->> Alice: Choisit un point de coupe (ex: à la 12ème carte). Crée et signe l'action "COUPER_PAQUET".
-                    par
-                        Alice ->> Bob: POST /action (ActionSignee: { type: "COUPER_PAQUET", position: 12 })
-                        Note over Bob: Valide la résolution d Alice
-                    and
-                        Alice ->> Charlie: POST /action (ActionSignee: { type: "COUPER_PAQUET", position: 12 })
-                        Note over Charlie: Valide la résolution d Alice.
-                    and
-                        Alice ->> Diana: POST /action (ActionSignee: { type: "COUPER_PAQUET", position: 12 })
-                        Note over Diana: Valide la résolution d Alice.
-                    end
-                end
-                alt toutes les actions sont validées
-                    Alice ->> Bob: POST /action (ActionSignee: { type: "JETON_HOTE"})
-                    Note over Bob: prend le jeton HOTE et remplace Alice
-                end
-            end
-        end
-    end
-
-    rect rgb(192,192,192)
-        Note over Alice: FIN DE PARTIE <br>Alice est Hôte.
-        alt une equipe depasse 500 points
-            par
-                Alice ->> Bob: POST /action (ActionSignee: { type: "RESULTATS", points par joueur })
-                Note over Bob: Valide le comptage d Alice
-            and
-                Alice ->> Charlie: POST /action (ActionSignee: { type: "RESULTATS", points par joueur})
-                Note over Charlie: Valide le comptage d Alice.
-            and
-                Alice ->> Diana: POST /action (ActionSignee: { type: "RESULTATS", points par joueur })
-                Note over Diana: Valide le comptage d Alice.
-            end
-        end
-        alt toutes les actions sont validées
-            par
-                Alice ->> Bob: POST /action (ActionSignee: { type: "FIN_PARTIE"})
-                Note over Bob: prend le jeton HOTE et remplace Alice
-            and
-                Alice ->> Charlie: POST /action (ActionSignee: { type: "FIN_PARTIE"})
-                Note over Charlie: prend le jeton HOTE et remplace Alice
-            and
-                Alice ->> Diana: POST /action (ActionSignee: { type: "FIN_PARTIE"})
-                Note over Diana: prend le jeton HOTE et remplace Alice
-            end
-        end
-    end
-
-```
 
 ```mermaid
 ---
@@ -946,4 +750,211 @@ if __name__ == "__main__":
     donnees_de_la_partie = json.loads(json_data)
     testeur = TesteurDeManche(donnees_de_la_partie, numero_manche=1)
     testeur.lancer_les_tests()
+```
+
+
+
+```mermaid
+---
+title: Diagramme de sequence global
+---
+sequenceDiagram
+    participant Alice as Alice/Hôte
+    participant Bob
+    participant Charlie as Charlie/Preneur
+    participant Diana
+    rect rgb(168,168,168)
+        loop personne n'a un score >500
+        %% ======================= PHASE 0 : Proposition de partie (Alice) et inscription =======================
+            rect rgb(192,168,192)
+                Note over Alice: DEBUT DE PARTIE<br>Gère les inscription à la partie
+                par
+                    Alice ->> Bob: POST /invite
+                    Note over Alice: Invite à la partie
+                and
+                    Alice ->> Charlie: POST /invite
+                    Note over Alice: Invite à la partie
+                and
+                    Alice ->> Diana: POST /invite
+                    Note over Alice: Invite à la partie
+                end
+                par
+                    Bob ->> Alice: POST /join
+                    Note over Alice: Envoie la position dans le jeu
+                and
+                    Charlie ->> Alice: POST /join
+                    Note over Alice: Envoie la position dans le jeu
+                and
+                    Diana ->> Alice: POST /join
+                    Note over Alice: Envoie la position dans le jeu
+                end
+                loop la partie n'est pas pleine
+                    Alice ->> Alice: attend d'autre joueur
+                end
+                alt la partie est pleine
+                    par
+                        Alice ->> Bob: POST /join
+                        Note over Alice: Envoie les joueurs et leur ip
+                    and
+                        Alice ->> Charlie: POST /join
+                        Note over Alice: Envoie les joueurs et leur ip
+                    and
+                        Alice ->> Diana: POST /join
+                        Note over Alice: Envoie les joueurs et leur ip
+                    end
+                end
+            end
+
+        %% ======================= PHASE 1 : DISTRIBUTION ET ENCHÈRES (Rôle Hôte) =======================
+            rect rgb(168,192,192)
+                Note over Alice: DEBUT DE MANCHE <br>Alice est Hôte.
+                Alice ->> Alice: Mélange le paquet (uniquement pour la 1ère partie du jeu).
+                Alice ->> Bob: POST /recevoir_main
+                Alice ->> Charlie: POST /recevoir_main
+                Alice ->> Diana: POST /recevoir_main
+                Alice ->> Bob: POST /demander_enchere
+                Bob -->> Alice: Réponse: { enchere: "PASSE" }
+                Alice ->> Charlie: POST /demander_enchere
+                Charlie -->> Alice: Réponse: { enchere: "PRENDS", couleur: "COEUR" }
+            %%    Note over Alice: Enchères terminées. Charlie (Preneur) a pris à Coeur.
+                Alice ->> Alice: Crée et signe l'action "RESULTAT_ENCHERES"
+                Alice ->> Bob: POST /action (ActionSignee: Résultat)
+                Alice ->> Charlie: POST /action (ActionSignee: Résultat)
+                Alice ->> Diana: POST /action (ActionSignee: Résultat)
+            %%    Note over Alice, Bob, Charlie, Diana: Synchronisation terminée. Atout = Coeur. Au tour de Bob de jouer.
+            end
+        %% ======================= PHASE 2 : JEU DES CARTES - UN PLI =======================
+        %%  DÉBUT PHASE DE JEU - Le rôle d'Hôte est terminé pour Alice.
+            rect rgb(192,192,168)
+                loop Chaque pli tant qu'il reste une carte à jouer
+                    note right of Bob: DEBUT DE PLI :<br> Bob lance le pli <br>(ou le dernier vainqueur du pli, ou le joueur après l hôte).
+                    Bob ->> Bob: Choisit une carte, crée et signe une action "JOUER_CARTE"
+                    par
+                        Bob ->> Alice: POST /action (ActionSignee: Carte de Bob)
+                        Note over Alice: Valide l action de Bob.
+                    and
+                        Bob ->> Charlie: POST /action (ActionSignee: Carte de Bob)
+                        Note over Alice: Valide l action de Bob.
+                    and
+                        Bob ->> Diana: POST /action (ActionSignee: Carte de Bob)
+                        Note over Alice: Valide l action de Bob.
+                    end
+
+                    Charlie ->> Charlie: Choisit une carte <br> crée et signe une action "JOUER_CARTE"
+                    par
+                        Charlie ->> Alice: POST /action (ActionSignee: Carte de Charlie)
+                        Note over Alice: Valide l action de Charlie.
+                    and
+                        Charlie ->> Bob: POST /action (ActionSignee: Carte de Charlie)
+                        Note over Bob: Valide l action de Charlie.
+                    and
+                        Charlie ->> Diana: POST /action (ActionSignee: Carte de Charlie)
+                        Note over Diana: Valide l action de Charlie.
+                    end
+
+                    Diana ->> Diana: Choisit une carte, crée et signe une action "JOUER_CARTE"
+                    par
+                        Diana ->> Alice: POST /action (ActionSignee: Carte de Diana)
+                        Note over Alice: Valide l action de Diana.
+                    and
+                        Diana ->> Bob: POST /action (ActionSignee: Carte de Diana)
+                        Note over Bob: Valide l action de Diana.
+                    and
+                        Diana ->> Charlie: POST /action (ActionSignee: Carte de Diana)
+                        Note over Charlie: Valide l action de Diana.
+                    end
+
+                    Alice ->> Alice: Choisit une carte, crée et signe une action "JOUER_CARTE"
+                    par
+                        Alice ->> Bob: POST /action (ActionSignee: Carte d'Alice)
+                        Note over Bob: Valide l action d Alice.
+                    and
+                        Alice ->> Charlie: POST /action (ActionSignee: Carte d'Alice)
+                        Note over Charlie: Valide l action d Alice.
+                    and
+                        Alice ->> Diana: POST /action (ActionSignee: Carte d'Alice)
+                        Note over Diana: Valide l action d Alice.
+                    end
+
+                    alt le pli est complet
+                        Note over Alice: FIN DE PLI <br>détermine le gagnant (Diana) crée et signe une action "REMPORTE_PLI"
+                        par
+                            Alice ->> Bob: POST /action (ActionSignee: Nom Vainqueur / Cartes Jouées)
+                            Note over Bob: Valide la résolution d Alice.
+                        and
+                            Alice ->> Charlie: POST /action (ActionSignee: Nom Vainqueur / Cartes Jouées)
+                            Note over Charlie: Valide la résolution d Alice.
+                        and
+                            Alice ->> Diana: POST /action (ActionSignee: Nom Vainqueur / Cartes Jouées)
+                            Note over Diana: Valide la résolution d Alice <br> Enregistre les cartes gagnées.
+                        end
+                    end
+
+                end
+            end
+
+        %% ======================= PHASE 3 : FIN DE MANCHE =======================
+        %% Les 8 plis sont joués.
+            rect rgb(192,192,192)
+                Note over Alice: FIN DE MANCHE <br>Alice est Hôte.
+                alt toutes les plis sont jouées
+                    Alice ->> Alice: Calcul les points Crée et signe l'action "POINTS".
+                    par
+                        Alice ->> Bob: POST /action (ActionSignee: { type: "POINTS", points: X })
+                        Note over Bob: Valide le comptage d Alice
+                    and
+                        Alice ->> Charlie: POST /action (ActionSignee: { type: "POINTS", points: Y })
+                        Note over Charlie: Valide le comptage d Alice.
+                    and
+                        Alice ->> Diana: POST /action (ActionSignee: { type: "POINTS", points: X })
+                        Note over Diana: Valide le comptage d Alice.
+                    end
+                    Alice ->> Alice: Choisit un point de coupe (ex: à la 12ème carte). Crée et signe l'action "COUPER_PAQUET".
+                    par
+                        Alice ->> Bob: POST /action (ActionSignee: { type: "COUPER_PAQUET", position: 12 })
+                        Note over Bob: Valide la résolution d Alice
+                    and
+                        Alice ->> Charlie: POST /action (ActionSignee: { type: "COUPER_PAQUET", position: 12 })
+                        Note over Charlie: Valide la résolution d Alice.
+                    and
+                        Alice ->> Diana: POST /action (ActionSignee: { type: "COUPER_PAQUET", position: 12 })
+                        Note over Diana: Valide la résolution d Alice.
+                    end
+                end
+                alt toutes les actions sont validées
+                    Alice ->> Bob: POST /action (ActionSignee: { type: "JETON_HOTE"})
+                    Note over Bob: prend le jeton HOTE et remplace Alice
+                end
+            end
+        end
+    end
+
+    rect rgb(192,192,192)
+        Note over Alice: FIN DE PARTIE <br>Alice est Hôte.
+        alt une equipe depasse 500 points
+            par
+                Alice ->> Bob: POST /action (ActionSignee: { type: "RESULTATS", points par joueur })
+                Note over Bob: Valide le comptage d Alice
+            and
+                Alice ->> Charlie: POST /action (ActionSignee: { type: "RESULTATS", points par joueur})
+                Note over Charlie: Valide le comptage d Alice.
+            and
+                Alice ->> Diana: POST /action (ActionSignee: { type: "RESULTATS", points par joueur })
+                Note over Diana: Valide le comptage d Alice.
+            end
+        end
+        alt toutes les actions sont validées
+            par
+                Alice ->> Bob: POST /action (ActionSignee: { type: "FIN_PARTIE"})
+                Note over Bob: prend le jeton HOTE et remplace Alice
+            and
+                Alice ->> Charlie: POST /action (ActionSignee: { type: "FIN_PARTIE"})
+                Note over Charlie: prend le jeton HOTE et remplace Alice
+            and
+                Alice ->> Diana: POST /action (ActionSignee: { type: "FIN_PARTIE"})
+                Note over Diana: prend le jeton HOTE et remplace Alice
+            end
+        end
+    end
+
 ```
