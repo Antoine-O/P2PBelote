@@ -1,0 +1,6 @@
+pytest~=8.3.5
+fastapi[standard]~=0.115.12
+uvicorn~=0.34.2
+httpx~=0.28.1
+urllib3~=2.4.0
+
