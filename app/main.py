@@ -1,10 +1,3 @@
-from fastapi import FastAPI, HTTPException, status
-from fastapi.responses import JSONResponse, Response
+from functions_externe import nombre_egal_app
 
-
-app = FastAPI()
-
-@app.head("/ping")
-async def ping():
-    return Response(status_code=status.HTTP_200_OK)
-
+nombre_egal_app()
